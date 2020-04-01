@@ -108,17 +108,21 @@ function calcQuantity_CMU_BLOCK(quoteLineModels){
         var realParent = null;
         var noBlocks = 0;
         tmpParentProductCodeFilter = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
+        console.log('START');
         console.log(tmpParentProductCodeFilter);
         if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_LF'){
           cmuLF = line.record['SBQQ__Quantity__c'];
           parent_CMU_BLOCK = parent;
+          console.log('cmuLF:' + cmuLF);
         }
-        if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_COARSES'){
+        if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_COURSES'){
           coarses = line.record['SBQQ__Quantity__c'];
+          console.log('coarses:' + coarses);
         }
         console.log(line.record['SBQQ__Quantity__c']);
         console.log(line.record['SBQQ__ProductCode__c']);
         console.log(parent.record['SBQQ__ProductCode__c']);
+        console.log('END');
       }
       
     });
