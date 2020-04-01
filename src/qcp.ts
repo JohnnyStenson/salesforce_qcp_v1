@@ -16,8 +16,8 @@ function debug(...args) {
 export function onInit(quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
-    console.log('JJS73 onInit');
-    logRecords(quoteLineModels);
+    /*console.log('JJS73 onInit');
+    logRecords(quoteLineModels);*/
     resolve();
   });
 }
@@ -32,8 +32,8 @@ export function onInit(quoteLineModels) {
 export function onBeforeCalculate(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
-    console.log('JJS73 onBeforeCalculate');
-    logRecords(quoteLineModels);
+    /*console.log('JJS73 onBeforeCalculate');
+    logRecords(quoteLineModels);*/
     resolve();
   });
 }
@@ -48,8 +48,8 @@ export function onBeforeCalculate(quoteModel, quoteLineModels) {
 export function onBeforePriceRules(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
-    console.log('JJS73 onBeforePriceRules');
-    logRecords(quoteLineModels);
+    /*console.log('JJS73 onBeforePriceRules');
+    logRecords(quoteLineModels);*/
     resolve();
   });
 }
@@ -64,8 +64,8 @@ export function onBeforePriceRules(quoteModel, quoteLineModels) {
 export function onAfterPriceRules(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
-    console.log('JJS73 onAfterPriceRules');
-    logRecords(quoteLineModels);
+    /*console.log('JJS73 onAfterPriceRules');
+    logRecords(quoteLineModels);*/
     resolve();
   });
 }
@@ -83,6 +83,13 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
     // Perform logic here and resolve promise
     console.log('JJS73 onAfterCalculate');
     logRecords(quoteLineModels);
+    if (quoteLineModels != null) {
+      quoteLineModels.forEach(function(line) {
+        
+        line.record['True_Effective_End_Date__c'] = toApexDate(trueEndDate);
+        line.record['True_Effective_Term__c'] = trueTerm;
+      });
+    }
     resolve();
   });
 }
