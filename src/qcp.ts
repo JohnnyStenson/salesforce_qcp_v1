@@ -97,6 +97,9 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
  * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
  */
 function calcQuantity_CMU_BLOCK(quoteLineModels){
+  var parent_CMU_BLOCK  = null;
+  var cmuLF =0;
+  var coarses = 0;
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line) {
       var parent = line.parentItem;
@@ -106,8 +109,12 @@ function calcQuantity_CMU_BLOCK(quoteLineModels){
         var noBlocks = 0;
         tmpParentProductCodeFilter = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
         console.log(tmpParentProductCodeFilter);
-        if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN'){
-          console.log('treu')
+        if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_LF'){
+          cmuLF = line.record['SBQQ__Quantity__c'];
+          parent_CMU_BLOCK = parent;
+        }
+        if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_COARSES'){
+          coarses = line.record['SBQQ__Quantity__c'];
         }
         console.log(line.record['SBQQ__Quantity__c']);
         console.log(line.record['SBQQ__ProductCode__c']);
@@ -115,7 +122,11 @@ function calcQuantity_CMU_BLOCK(quoteLineModels){
       }
       
     });
+    if(parent_CMU_BLOCK != null){
+      parent_CMU_BLOCK.record['SBQQ__Quantity__c'] = cmuLF * coarses;
+    }
   }
+  console.log('Product:'  + parent_CMU_BLOCK.record['SBQQ__Quantity__c']);
 }
 
 
