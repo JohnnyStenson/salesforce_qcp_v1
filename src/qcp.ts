@@ -82,17 +82,32 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
     console.log('JJS73 onAfterCalculate');
+    console.dir(quoteLineModels);
     logRecords(quoteLineModels);
     if (quoteLineModels != null) {
       quoteLineModels.forEach(function(line) {
-        console.log(line.record['SBQQ__Quantity__c']);
-        console.log(line.record['SBQQ__ProductCode__c']);
+        var parent = line.parentItem;
+        if (parent != null) {
+          console.log(line.record['SBQQ__Quantity__c']);
+          console.log(line.record['SBQQ__ProductCode__c']);
+          console.log(parent.record['SBQQ__ProductCode__c']);
+        }
+        
       });
     }
     resolve();
   });
 }
 
+
+/**
+ * 
+ * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ */
+function calcQuantity_CMU_BLOCK(){
+
+}
 
 
 /**
