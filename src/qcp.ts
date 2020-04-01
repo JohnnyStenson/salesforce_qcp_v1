@@ -99,7 +99,7 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
 function calcQuantity_CMU_BLOCK(quoteLineModels){
   var parent_CMU_BLOCK  = null;
   var cmuLF =0;
-  var coarses = 0;
+  var courses = 0;
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line) {
       var parent = line.parentItem;
@@ -116,8 +116,8 @@ function calcQuantity_CMU_BLOCK(quoteLineModels){
           console.log('cmuLF:' + cmuLF);
         }
         if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_COURSES'){
-          coarses = line.record['SBQQ__Quantity__c'];
-          console.log('coarses:' + coarses);
+          courses = line.record['SBQQ__Quantity__c'];
+          console.log('coarses:' + courses);
         }
         console.log(line.record['SBQQ__Quantity__c']);
         console.log(line.record['SBQQ__ProductCode__c']);
@@ -127,7 +127,7 @@ function calcQuantity_CMU_BLOCK(quoteLineModels){
       
     });
     if(parent_CMU_BLOCK != null){
-      parent_CMU_BLOCK.record['SBQQ__Quantity__c'] = cmuLF * coarses;
+      parent_CMU_BLOCK.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF * courses / 1.33);
     }
   }
   console.log('Product:'  + parent_CMU_BLOCK.record['SBQQ__Quantity__c']);
