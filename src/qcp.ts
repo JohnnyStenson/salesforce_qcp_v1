@@ -16,6 +16,8 @@ function debug(...args) {
 export function onInit(quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
+    console.log('JJS73 onInit');
+    logRecords(quoteLineModels);
     resolve();
   });
 }
@@ -85,15 +87,6 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
   });
 }
 
-
-/**
- * 
- * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
- * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
- */
-function mapRecords(quoteLineModels) {
-  return quoteLineModels.map(model => model.record);
-}
 
 
 /**
