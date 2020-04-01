@@ -83,7 +83,7 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
     // Perform logic here and resolve promise
     console.log('JJS73 onAfterCalculate');
     console.dir(quoteLineModels);
-    console.log(quoteLineModels.find( ({ record }) => 'SBQQ__ProductCode__c' === 'CMU_BLOCK_6IN' ));
+    calcQuantity_CMU_BLOCK(quoteLineModels);
     logRecords(quoteLineModels);
     
     resolve();
