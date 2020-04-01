@@ -85,9 +85,8 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
     logRecords(quoteLineModels);
     if (quoteLineModels != null) {
       quoteLineModels.forEach(function(line) {
-        
-        line.record['True_Effective_End_Date__c'] = toApexDate(trueEndDate);
-        line.record['True_Effective_Term__c'] = trueTerm;
+        console.log(line.record['SBQQ__Quantity__c']);
+        console.log(line.record['SBQQ__ProductCode__c']);
       });
     }
     resolve();
