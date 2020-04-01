@@ -20,6 +20,7 @@ export function onInit(quoteLineModels) {
   });
 }
 
+
 /**
  * This method is called by the calculator before calculation begins, but after formula fields have been evaluated.
  * @param {QuoteModel} quoteModel JS representation of the quote being evaluated
@@ -35,10 +36,75 @@ export function onBeforeCalculate(quoteModel, quoteLineModels) {
   });
 }
 
+
+/**
+ * This method is called by the calculator before price rules are evaluated.
+ * @param {QuoteModel} quoteModel JS representation of the quote being evaluated
+ * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ * @returns {Promise}
+ */
+export function onBeforePriceRules(quoteModel, quoteLineModels) {
+  return new Promise((resolve, reject) => {
+    // Perform logic here and resolve promise
+    resolve();
+  });
+}
+
+
+/**
+ * This method is called by the calculator after price rules are evaluated.
+ * @param {QuoteModel} quoteModel JS representation of the quote being evaluated
+ * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ * @returns {Promise}
+ */
+export function onAfterPriceRules(quoteModel, quoteLineModels) {
+  return new Promise((resolve, reject) => {
+    // Perform logic here and resolve promise
+    resolve();
+  });
+}
+
+
+/**
+ * This method is called by the calculator after calculation has completed, but before formula fields are
+ * re-evaluated.
+ * @param {QuoteModel} quoteModel JS representation of the quote being evaluated
+ * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ * @returns {Promise}
+ */
+export function onAfterCalculate(quoteModel, quoteLineModels) {
+  return new Promise((resolve, reject) => {
+    // Perform logic here and resolve promise
+    resolve();
+  });
+}
+
+
+/**
+ * 
+ * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ */
 function mapRecords(quoteLineModels) {
   return quoteLineModels.map(model => model.record);
 }
 
+
+/**
+ * 
+ * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ */
+function mapRecords(quoteLineModels) {
+  return quoteLineModels.map(model => model.record);
+}
+
+
+/**
+ * 
+ * @param {QuoteLineModel[] || QuoteModel} quoteOrLineModel
+ * @returns void
+ */
 function logRecords(quoteOrLineModel) {
   // serializing records removes proxy to make debugging easier,
   // BUT is a performance hit, so make sure to disable logging in production to avoid this without code changes
