@@ -46,6 +46,8 @@ export function onBeforeCalculate(quoteModel, quoteLineModels) {
 export function onBeforePriceRules(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
+    console.log('JJS73 onBeforePriceRules');
+    logRecords(quoteLineModels);
     resolve();
   });
 }
@@ -60,6 +62,8 @@ export function onBeforePriceRules(quoteModel, quoteLineModels) {
 export function onAfterPriceRules(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
+    console.log('JJS73 onAfterPriceRules');
+    logRecords(quoteLineModels);
     resolve();
   });
 }
@@ -75,6 +79,8 @@ export function onAfterPriceRules(quoteModel, quoteLineModels) {
 export function onAfterCalculate(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
+    console.log('JJS73 onAfterCalculate');
+    logRecords(quoteLineModels);
     resolve();
   });
 }
