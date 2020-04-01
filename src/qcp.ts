@@ -83,19 +83,9 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
     // Perform logic here and resolve promise
     console.log('JJS73 onAfterCalculate');
     console.dir(quoteLineModels);
-    console.log(quoteLineModels.find( ({ SBQQ__ProductCode__c }) => SBQQ__ProductCode__c === 'CMU_BLOCK_6IN' ));
+    console.log(quoteLineModels.find( ({ record }) => 'SBQQ__ProductCode__c' === 'CMU_BLOCK_6IN' ));
     logRecords(quoteLineModels);
-    if (quoteLineModels != null) {
-      quoteLineModels.forEach(function(line) {
-        var parent = line.parentItem;
-        if (parent != null) {
-          console.log(line.record['SBQQ__Quantity__c']);
-          console.log(line.record['SBQQ__ProductCode__c']);
-          console.log(parent.record['SBQQ__ProductCode__c']);
-        }
-        
-      });
-    }
+    
     resolve();
   });
 }
@@ -106,8 +96,26 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
  * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
  * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
  */
-function calcQuantity_CMU_BLOCK(){
-
+function calcQuantity_CMU_BLOCK(quoteLineModels){
+  if (quoteLineModels != null) {
+    quoteLineModels.forEach(function(line) {
+      var parent = line.parentItem;
+      var tmpParentProductCodeFilter = '';
+      if (parent != null) {
+        var realParent = null;
+        var noBlocks = 0;
+        tmpParentProductCodeFilter = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
+        console.log(tmpParentProductCodeFilter);
+        if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN'){
+          console.log('treu')
+        }
+        console.log(line.record['SBQQ__Quantity__c']);
+        console.log(line.record['SBQQ__ProductCode__c']);
+        console.log(parent.record['SBQQ__ProductCode__c']);
+      }
+      
+    });
+  }
 }
 
 
