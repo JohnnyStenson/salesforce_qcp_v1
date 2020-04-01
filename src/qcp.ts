@@ -29,6 +29,8 @@ export function onInit(quoteLineModels) {
 export function onBeforeCalculate(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
+    console.log('JJS73 onBeforeCalculate');
+    logRecords(quoteLineModels);
     resolve();
   });
 }
