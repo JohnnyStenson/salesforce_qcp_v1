@@ -32,8 +32,9 @@ export function onInit(quoteLineModels) {
 export function onBeforeCalculate(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
-    /*console.log('JJS73 onBeforeCalculate');
-    logRecords(quoteLineModels);*/
+    console.log('JJS73 onBeforeCalculate');
+    //calcQuantity_CMU_BLOCK(quoteLineModels);
+    logRecords(quoteLineModels);
     resolve();
   });
 }
@@ -81,6 +82,7 @@ export function onAfterPriceRules(quoteModel, quoteLineModels) {
 export function onAfterCalculate(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
+
     console.log('JJS73 onAfterCalculate');
     console.dir(quoteLineModels);
     calcQuantity_CMU_BLOCK(quoteLineModels);
@@ -100,48 +102,34 @@ function calcQuantity_CMU_BLOCK(quoteLineModels){
   var parent_CMU_BLOCK = [];
   var cmuLF = [];
   var courses = [];
-
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line) {
       var parent = line.parentItem;
       var tmpParentProductCodeFilter = '';
       if (parent != null) {
-        var parentProductCode = parent.record['SBQQ__ProductCode__c'];
+        var parentKey = parent.key;
         tmpParentProductCodeFilter = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
 
-        console.log('START');
-        //console.log(tmpParentProductCodeFilter);
-
         if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_LF'){
-          cmuLF[parentProductCode] = line.record['SBQQ__Quantity__c'];
-          parent_CMU_BLOCK[parentProductCode] = parent;
-          console.log('cmuLF:' + cmuLF[parentProductCode]);
-          parent.record['SBQQ__Quantity__c'] = parent.record['SBQQ__Quantity__c'] * line.record['SBQQ__Quantity__c'] / 1.15325625947;
+          cmuLF[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
+          parent_CMU_BLOCK[parentKey] = parent;
         }
         if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_COURSES'){
-          courses[parentProductCode] = line.record['SBQQ__Quantity__c'];
-          parent_CMU_BLOCK[parentProductCode] = parent;
-          console.log('coarses:' + courses[parentProductCode]);
-          parent.record['SBQQ__Quantity__c'] = parent.record['SBQQ__Quantity__c'] * line.record['SBQQ__Quantity__c'] / 1.15325625947;
+          courses[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
+          parent_CMU_BLOCK[parentKey] = parent;
         }
-
-        //console.log(line.record['SBQQ__Quantity__c']);
-        //console.log(line.record['SBQQ__ProductCode__c']);
-        //console.log(parent.record['SBQQ__ProductCode__c']);
-        console.log('END');
       }
-      
     });
-    /*console.log('parent_CMU_BLOCK');
-    console.dir(parent_CMU_BLOCK);
-    console.log('parent_CMU_BLOCK.length:' + parent_CMU_BLOCK.length);
-    if(parent_CMU_BLOCK.length > 0){
-      parent_CMU_BLOCK.forEach(function(parent_line, parent_product_code) {
-        parent_CMU_BLOCK[parent_product_code].record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[parent_product_code] * courses[parent_product_code] / 1.33);
-      });
-    }*/
-  }
 
+    if(parent_CMU_BLOCK){
+      parent_CMU_BLOCK.forEach(function(parent_line, key) {
+        var tmpParentProductCodeFilter = parent_line.record['SBQQ__ProductCode__c'].substring(0,10) + parent_line.record['SBQQ__ProductCode__c'].slice(parent_line.record['SBQQ__ProductCode__c'].length - 2);
+        if(parent_line.key == key && tmpParentProductCodeFilter === 'CMU_BLOCK_IN'){
+          parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
+        }
+      });
+    }
+  }
 }
 
 
