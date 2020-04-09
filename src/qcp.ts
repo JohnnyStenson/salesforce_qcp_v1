@@ -103,10 +103,15 @@ function calc_CMU_BLOCK(quoteLineModels){
   var cmuLF = [];
   var courses = [];
   var parent_CMU_V_REBAR = [];
-  var rebarSize = [];
-  var inOC = [];
+  var descrRebarSize = [];
+  var descrInOC = [];
+  var intRebarSize = [];
+  var intInOC = [];
+  var line_V_REBAR_BAR = [];
+
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line) {
+      var lineKey = line.key;
       var parent = line.parentItem;
 
       if (parent != null) {
@@ -129,35 +134,55 @@ function calc_CMU_BLOCK(quoteLineModels){
         var filterPC_Rebar = line.record['SBQQ__ProductCode__c'].substring(0, 6) + line.record['SBQQ__ProductCode__c'].slice(line.record['SBQQ__ProductCode__c'].length - 4);
 
         if('CMU_V_REBAR_OC_' === filterPC_OC && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']){
-          inOC[parentKey] = line.record['SBQQ__Description__c'];
-          parent_CMU_V_REBAR[parentKey] = parent;
+          descrInOC[parent.parentItem.key] = line.record['SBQQ__Description__c'];
+          parent_CMU_V_REBAR[parent.parentItem.key] = parent;
+          intInOC[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(15, 2), 10);
+
+          console.log(parent.parentItem.key);
         }
         if('REBAR__BAR' === filterPC_Rebar && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']){
-          rebarSize[parentKey] = line.record['SBQQ__Description__c'];
-          parent_CMU_V_REBAR[parentKey] = parent;
+          descrRebarSize[parent.parentItem.key] = line.record['SBQQ__Description__c'];
+          intRebarSize[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(6, 1), 10);
+          parent_CMU_V_REBAR[parent.parentItem.key] = parent;
+          line_V_REBAR_BAR[parent.parentItem.key] = line;
         }
       }
-    });
+    }); // END OF LINES
 
-    /* Quantity of Block */
+    
     if(parent_CMU_BLOCK){
       parent_CMU_BLOCK.forEach(function(parent_line, key) {
-        var filterPC_CMU_BLOCK_IN = parent_line.record['SBQQ__ProductCode__c'].substring(0,10) + parent_line.record['SBQQ__ProductCode__c'].slice(parent_line.record['SBQQ__ProductCode__c'].length - 2);
-        if(parent_line.key == key && filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN'){
-          parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
-        }
-      });
-    }
+        /* Quantity of Block */
+        parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
 
-    /* Vertical Rebar */
-    if(parent_CMU_V_REBAR){
-      parent_CMU_V_REBAR.forEach(function(parent_line, key) {
-        if(parent_line.key == key && parent_line.record['SBQQ__ProductCode__c'] === 'CMU_V_REBAR'){
-          parent_line.record['SBQQ__Description__c'] = rebarSize[key] + ' at ' + inOC[key];
+        /* Vertical Rebar */
+        if(parent_CMU_V_REBAR){
+          parent_CMU_V_REBAR[key].record['SBQQ__Description__c'] = descrRebarSize[key] + ' at ' + descrInOC[key];
+          var tmpHeight = courses[key] * .66;
+          var tmpQtyRebar = cmuLF[key] / (intInOC[key] / 12);
+          var tmpVRebarBars = 0;
+          if(tmpHeight > 6.66){
+            tmpVRebarBars = Math.ceil((tmpHeight +(intRebarSize[key] * .125 * 50 / 12)) * tmpQtyRebar / 20);
+          }else{
+            tmpVRebarBars = Math.ceil(tmpHeight * tmpQtyRebar / 20);
+          }
+          line_V_REBAR_BAR[key].record['SBQQ__Quantity__c'] = tmpVRebarBars;
+
         }
       });
     }
-    
+    /* DEBUG TO CONSOLE
+    console.log('DEBUG:');
+    console.dir(parent_CMU_BLOCK);
+    console.dir(cmuLF);
+    console.dir(courses);
+    console.dir(parent_CMU_V_REBAR);
+    console.dir(descrRebarSize);
+    console.dir(descrInOC);
+    console.dir(intRebarSize);
+    console.dir(intInOC);
+    console.dir(line_V_REBAR_BAR);
+    */
   }
 }
 
