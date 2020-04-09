@@ -85,8 +85,7 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
 
     console.log('JJS73 onAfterCalculate');
     console.dir(quoteLineModels);
-    calcQuantity_CMU_BLOCK(quoteLineModels);
-    combineDescr_CMU_V_REBAR(quoteLineModels);
+    calc_CMU_BLOCK(quoteLineModels);
     logRecords(quoteLineModels);
     
     resolve();
@@ -99,77 +98,66 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
  * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
  * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
  */
-function combineDescr_CMU_V_REBAR(quoteLineModels){
-  var parent_record = [];
+function calc_CMU_BLOCK(quoteLineModels){
+  var parent_CMU_BLOCK = [];
+  var cmuLF = [];
+  var courses = [];
+  var parent_CMU_V_REBAR = [];
   var rebarSize = [];
   var inOC = [];
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line) {
       var parent = line.parentItem;
-      if (parent != null && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']) {
-        var parentKey = parent.key;
-        var filterPC_OC = line.record['SBQQ__ProductCode__c'].substring(0, 15);
-        var filterPC_Rebar = line.record['SBQQ__ProductCode__c'].substring(0, 6) 
-          + line.record['SBQQ__ProductCode__c'].slice(line.record['SBQQ__ProductCode__c'].length - 4);
 
-        if('CMU_V_REBAR_OC_' === filterPC_OC){
-          inOC[parentKey] = line.record['SBQQ__Description__c'];
-          parent_record[parentKey] = parent;
+      if (parent != null) {
+        var parentKey = parent.key;
+
+        /* Quantity of Block */
+        var filterPC_CMU_BLOCK_IN = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
+
+        if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_LF'){
+          cmuLF[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
+          parent_CMU_BLOCK[parentKey] = parent;
         }
-        if('REBAR__BAR' === filterPC_Rebar){
+        if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_COURSES'){
+          courses[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
+          parent_CMU_BLOCK[parentKey] = parent;
+        }
+
+        /* Vertical Rebar */
+        var filterPC_OC = line.record['SBQQ__ProductCode__c'].substring(0, 15);
+        var filterPC_Rebar = line.record['SBQQ__ProductCode__c'].substring(0, 6) + line.record['SBQQ__ProductCode__c'].slice(line.record['SBQQ__ProductCode__c'].length - 4);
+
+        if('CMU_V_REBAR_OC_' === filterPC_OC && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']){
+          inOC[parentKey] = line.record['SBQQ__Description__c'];
+          parent_CMU_V_REBAR[parentKey] = parent;
+        }
+        if('REBAR__BAR' === filterPC_Rebar && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']){
           rebarSize[parentKey] = line.record['SBQQ__Description__c'];
-          parent_record[parentKey] = parent;
+          parent_CMU_V_REBAR[parentKey] = parent;
         }
       }
     });
 
-    if(parent_record){
-      parent_record.forEach(function(parent_line, key) {
+    /* Quantity of Block */
+    if(parent_CMU_BLOCK){
+      parent_CMU_BLOCK.forEach(function(parent_line, key) {
+        var filterPC_CMU_BLOCK_IN = parent_line.record['SBQQ__ProductCode__c'].substring(0,10) + parent_line.record['SBQQ__ProductCode__c'].slice(parent_line.record['SBQQ__ProductCode__c'].length - 2);
+        if(parent_line.key == key && filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN'){
+          parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
+        }
+      });
+    }
+
+    /* Vertical Rebar */
+    if(parent_CMU_V_REBAR){
+      parent_CMU_V_REBAR.forEach(function(parent_line, key) {
         if(parent_line.key == key && parent_line.record['SBQQ__ProductCode__c'] === 'CMU_V_REBAR'){
           parent_line.record['SBQQ__Description__c'] = rebarSize[key] + ' at ' + inOC[key];
         }
       });
     }
-  }
-}
-
-
-/**
- * 
- * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
- * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
- */
-function calcQuantity_CMU_BLOCK(quoteLineModels){
-  var parent_CMU_BLOCK = [];
-  var cmuLF = [];
-  var courses = [];
-  if (quoteLineModels != null) {
-    quoteLineModels.forEach(function(line) {
-      var parent = line.parentItem;
-      var tmpParentProductCodeFilter = '';
-      if (parent != null) {
-        var parentKey = parent.key;
-        tmpParentProductCodeFilter = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
-
-        if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_LF'){
-          cmuLF[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
-          parent_CMU_BLOCK[parentKey] = parent;
-        }
-        if(tmpParentProductCodeFilter === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_COURSES'){
-          courses[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
-          parent_CMU_BLOCK[parentKey] = parent;
-        }
-      }
-    });
-
-    if(parent_CMU_BLOCK){
-      parent_CMU_BLOCK.forEach(function(parent_line, key) {
-        var tmpParentProductCodeFilter = parent_line.record['SBQQ__ProductCode__c'].substring(0,10) + parent_line.record['SBQQ__ProductCode__c'].slice(parent_line.record['SBQQ__ProductCode__c'].length - 2);
-        if(parent_line.key == key && tmpParentProductCodeFilter === 'CMU_BLOCK_IN'){
-          parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
-        }
-      });
-    }
+    
   }
 }
 
