@@ -100,6 +100,7 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
  */
 function calc_CMU_BLOCK(quoteLineModels){
   var parent_CMU_BLOCK = [];
+  var inchBlock =[];
   var cmuLF = [];
   var courses = [];
   var parent_CMU_V_REBAR = [];
@@ -108,11 +109,21 @@ function calc_CMU_BLOCK(quoteLineModels){
   var intRebarSize = [];
   var intInOC = [];
   var line_V_REBAR_BAR = [];
+  var line_CMU_DURAWALL = [];
+  var costConcretePY = 0;
+  var costConcreteDelivery = 0;
+  var rows_CMU_GROUT_SOLID = [];
+  var line_CMU_GROUT_SOLID = [];
+
 
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line) {
       var lineKey = line.key;
       var parent = line.parentItem;
+      
+      /* Cost Inputs */
+      if(line.record['SBQQ__ProductCode__c'] === 'CONCRETE_3000_PY_COST'){ costConcretePY = line.record['SBQQ__UnitCost__c']; }
+      if(line.record['SBQQ__ProductCode__c'] === 'CONCRETE_DELIVERY'){ costConcreteDelivery = line.record['SBQQ__UnitCost__c']; }
 
       if (parent != null) {
         var parentKey = parent.key;
@@ -123,10 +134,17 @@ function calc_CMU_BLOCK(quoteLineModels){
         if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_LF'){
           cmuLF[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
           parent_CMU_BLOCK[parentKey] = parent;
+          inchBlock[parentKey] = parseInt(parent.record['SBQQ__ProductCode__c'].substr(10,2));
+          console.log(inchBlock[parentKey]);
         }
         if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_COURSES'){
           courses[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
           parent_CMU_BLOCK[parentKey] = parent;
+        }
+
+        /* Durawall */
+        if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'].substring(0, 13) === 'CMU_DURAWALL_'){
+          line_CMU_DURAWALL[parentKey] = line;
         }
 
         /* Vertical Rebar */
@@ -137,14 +155,18 @@ function calc_CMU_BLOCK(quoteLineModels){
           descrInOC[parent.parentItem.key] = line.record['SBQQ__Description__c'];
           parent_CMU_V_REBAR[parent.parentItem.key] = parent;
           intInOC[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(15, 2), 10);
-
-          console.log(parent.parentItem.key);
         }
         if('REBAR__BAR' === filterPC_Rebar && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']){
           descrRebarSize[parent.parentItem.key] = line.record['SBQQ__Description__c'];
           intRebarSize[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(6, 1), 10);
           parent_CMU_V_REBAR[parent.parentItem.key] = parent;
           line_V_REBAR_BAR[parent.parentItem.key] = line;
+        }
+        
+        /* Solid Grout */
+        if(line.record['SBQQ__ProductCode__c'] === 'CMU_GROUT_SOLID'){
+          line_CMU_GROUT_SOLID[parentKey] = line;
+          rows_CMU_GROUT_SOLID[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
         }
       }
     }); // END OF LINES
@@ -155,8 +177,13 @@ function calc_CMU_BLOCK(quoteLineModels){
         /* Quantity of Block */
         parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
 
+        /* Durawall */
+        if(line_CMU_DURAWALL[key]){
+          line_CMU_DURAWALL[key].record['SBQQ__Quantity__c'] = Math.floor(courses[key] / 2) * cmuLF[key] / 500;
+        }
+
         /* Vertical Rebar */
-        if(parent_CMU_V_REBAR){
+        if(parent_CMU_V_REBAR[key]){
           parent_CMU_V_REBAR[key].record['SBQQ__Description__c'] = descrRebarSize[key] + ' at ' + descrInOC[key];
           var tmpHeight = courses[key] * .66;
           var tmpQtyRebar = cmuLF[key] / (intInOC[key] / 12);
@@ -167,13 +194,26 @@ function calc_CMU_BLOCK(quoteLineModels){
             tmpVRebarBars = Math.ceil(tmpHeight * tmpQtyRebar / 20);
           }
           line_V_REBAR_BAR[key].record['SBQQ__Quantity__c'] = tmpVRebarBars;
+        }
 
+        /* Solid Grout */
+        if(line_CMU_GROUT_SOLID[key]){
+          var tmpBlocks = Math.ceil(cmuLF[key] / 1.33 * rows_CMU_GROUT_SOLID[key]);
+          console.log("tmpBlocks:" + tmpBlocks);
+          var tmpFillYards = tmpBlocks * factorBlockFillYards(inchBlock[key]) / 27;
+          console.log("tmpFillYards:" + tmpFillYards);
+          var tmpPriceSolidGrout = tmpFillYards * costConcretePY + Math.ceil(tmpFillYards / 10) * costConcreteDelivery;
+          line_CMU_GROUT_SOLID[key].record['SBQQ__NetPrice__c'] = tmpPriceSolidGrout / rows_CMU_GROUT_SOLID[key];
+          console.log("price:" + tmpPriceSolidGrout);
+          console.log(factorBlockFillYards(inchBlock[key]));
         }
       });
     }
-    /* DEBUG TO CONSOLE
+
+    /* DEBUG TO CONSOLE */
     console.log('DEBUG:');
     console.dir(parent_CMU_BLOCK);
+    console.dir(inchBlock);
     console.dir(cmuLF);
     console.dir(courses);
     console.dir(parent_CMU_V_REBAR);
@@ -182,7 +222,43 @@ function calc_CMU_BLOCK(quoteLineModels){
     console.dir(intRebarSize);
     console.dir(intInOC);
     console.dir(line_V_REBAR_BAR);
-    */
+    console.dir(line_CMU_DURAWALL);
+    console.log(costConcretePY);
+    console.log(costConcreteDelivery);
+    console.dir(rows_CMU_GROUT_SOLID);
+    console.dir(line_CMU_GROUT_SOLID);
+    
+  }
+
+
+}
+
+
+/**
+ * 
+ * @param inchBlock integer inch Block ie. 6" Block inchBlock = 6
+ * @returns double factor to be used in Fill Yards formula
+ */
+function factorBlockFillYards(inchBlock){
+  console.log("switch:" + inchBlock);
+  switch(inchBlock) {
+    case 4:
+      return .09;
+      break;
+    case 6:
+      return .17;
+      break;
+    case 8:
+      return .25;
+      break;
+    case 10:
+      return .33;
+      break;
+    case 12:
+      return .39;
+      break;
+    default:
+      return 0;
   }
 }
 
