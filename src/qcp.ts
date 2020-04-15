@@ -33,7 +33,7 @@ export function onBeforeCalculate(quoteModel, quoteLineModels) {
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
     console.log('JJS73 onBeforeCalculate');
-    //calcQuantity_CMU_BLOCK(quoteLineModels);
+    
     logRecords(quoteLineModels);
     resolve();
   });
@@ -86,10 +86,49 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
     console.log('JJS73 onAfterCalculate');
     console.dir(quoteLineModels);
     calc_CMU_BLOCK(quoteLineModels);
+    addCPT(quoteLineModels);
     logRecords(quoteLineModels);
     
     resolve();
   });
+}
+
+/**
+ * 
+ * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
+ */
+function addCPT(quoteLineModels){
+  var linesToZeroQuantity = [];
+  if (quoteLineModels != null) {
+    quoteLineModels.forEach(function(line) {
+      if(line.record['SBQQ__ProductCode__c'] === 'CMU_BLOCK_AIR_VENT'){ 
+        line.record['Custom_Package_Total__c'] = line.record['SBQQ__PackageTotal__c'];
+        line.record['SBQQ__NetPrice__c'] = line.record['Custom_Package_Total__c']; 
+        line.record['Quote_Line_Item_Section__c'] = 'Block';
+        
+        console.log('Components');
+        console.dir(line.components);
+        var tmpNetUnitPrice = 0;
+        line.components.forEach(function (lineZero) {
+          tmpNetUnitPrice += lineZero.record['SBQQ__NetPrice__c'];
+          linesToZeroQuantity.push(lineZero);
+        });
+        line.record['SBQQ__NetPrice__c'] = tmpNetUnitPrice;
+      }
+    });
+
+    setComponentZeroQuant(linesToZeroQuantity);
+  }
+}
+
+
+function setComponentZeroQuant(lines){
+  if (lines != null){
+    lines.forEach(function(line){
+      line.record['SBQQ__Quantity__c'] = 0;
+    });
+  }
 }
 
 
