@@ -14,6 +14,11 @@ function debug(...args) {
  * @returns {Promise}
  */
 export function onInit(quoteLineModels) {
+  if (quoteLineModels != null) {
+    quoteLineModels.forEach(function (line) {
+      line.record["Custom_Package_Total__c"] = 0;
+    });
+  }  
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
     /*console.log('JJS73 onInit');
@@ -34,7 +39,7 @@ export function onBeforeCalculate(quoteModel, quoteLineModels) {
     // Perform logic here and resolve promise
     console.log('JJS73 onBeforeCalculate');
     
-    logRecords(quoteLineModels);
+    //logRecords(quoteLineModels);
     resolve();
   });
 }
@@ -80,14 +85,15 @@ export function onAfterPriceRules(quoteModel, quoteLineModels) {
  * @returns {Promise}
  */
 export function onAfterCalculate(quoteModel, quoteLineModels) {
+  console.log('JJS73 onAfterCalculate');
+  console.dir(quoteLineModels);
+  calc_CMU_BLOCK(quoteLineModels);
+  addCPT(quoteLineModels);
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
 
-    console.log('JJS73 onAfterCalculate');
-    console.dir(quoteLineModels);
-    calc_CMU_BLOCK(quoteLineModels);
-    addCPT(quoteLineModels);
-    logRecords(quoteLineModels);
+    
+    //logRecords(quoteLineModels);
     
     resolve();
   });
@@ -107,8 +113,8 @@ function addCPT(quoteLineModels){
         line.record['SBQQ__NetPrice__c'] = line.record['Custom_Package_Total__c']; 
         line.record['Quote_Line_Item_Section__c'] = 'Block';
         
-        console.log('Components');
-        console.dir(line.components);
+        /* console.log('Components');
+        console.dir(line.components); */
         var tmpNetUnitPrice = 0;
         line.components.forEach(function (lineZero) {
           tmpNetUnitPrice += lineZero.record['SBQQ__NetPrice__c'];
@@ -278,7 +284,7 @@ function calc_CMU_BLOCK(quoteLineModels){
 
         /* Grout Rebar Cells */
         if(line_CMU_GROUT_REBAR[key]){
-          var tmpRebarFillYards = (courses[key] - rows_CMU_GROUT_SOLID[key]) * Math.ceil(cmuLF[key] / (intInOC[key] / 12)) * factorRebarCellsFillYards(inchBlock[key]) / 27;
+          var tmpRebarFillYards = (courses[key]) * Math.ceil(cmuLF[key] / (intInOC[key] / 12)) * factorRebarCellsFillYards(inchBlock[key]) / 27;
           var tmpPriceGrout = tmpRebarFillYards * costConcretePY + Math.ceil(tmpRebarFillYards / 10) * costConcreteDelivery;
           line_CMU_GROUT_REBAR[key].record['SBQQ__NetPrice__c'] = tmpPriceGrout;
         }
@@ -297,6 +303,9 @@ function calc_CMU_BLOCK(quoteLineModels){
          */
         /* Roll Up Package Total to Parent */
         quoteLineModels.forEach(function(line) {
+          line.record['Custom_Package_Total__c'] = 0;
+        });
+        quoteLineModels.forEach(function(line) {
           var parent = line.parentItem;
           if(parent){
             var filterPC_CMU_BLOCK_IN = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
@@ -308,10 +317,10 @@ function calc_CMU_BLOCK(quoteLineModels){
               /* Add line.CPT to parent.CPT */
               parent.record['Custom_Package_Total__c'] = parent.record['Custom_Package_Total__c'] + line.record['Custom_Package_Total__c'];
 
-              console.log('childCPT ' + line.record['SBQQ__ProductName__c'] + ': ' + line.record['Custom_Package_Total__c']);
+              /*console.log('childCPT ' + line.record['SBQQ__ProductName__c'] + ': ' + line.record['Custom_Package_Total__c']);
               console.dir(line);
               console.log('parentCPT ' + parent.record['SBQQ__ProductName__c'] + ': ' + parent.record['Custom_Package_Total__c']);
-              console.dir(parent);
+              console.dir(parent);*/
             } //is line duping?
           }
         });
