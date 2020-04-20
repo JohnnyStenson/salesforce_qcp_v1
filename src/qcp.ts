@@ -88,6 +88,7 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
   console.log('JJS73 onAfterCalculate');
   console.dir(quoteLineModels);
   calc_CMU_BLOCK(quoteLineModels);
+  calc_BOND_BEAM(quoteLineModels);
   addCPT(quoteLineModels);
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
@@ -97,6 +98,42 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
     
     resolve();
   });
+}
+
+
+function calc_BOND_BEAM(quoteLineModels){
+  var parent_CMU_BOND_BEAM = [];
+  var cmuLF = [];
+  var courses = [];
+  var line_CMU_BOND_BEAM = [];
+
+  if (quoteLineModels != null) {
+    quoteLineModels.forEach(function(line) {
+      var parent = line.parentItem;
+
+      if (parent != null) {
+        var parentKey = parent.key;
+        var filterPC_BOND_BEAM = parent.record['SBQQ__ProductCode__c'].substring(0 , 20);
+        if(filterPC_BOND_BEAM === 'CMU_BOND_BEAM_BLOCK_' && line.record['SBQQ__ProductCode__c'] === 'CMU_LF'){
+          cmuLF[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
+          parent_CMU_BOND_BEAM[parentKey] = parent;
+        }
+
+        if(filterPC_BOND_BEAM === 'CMU_BOND_BEAM_BLOCK_' && line.record['SBQQ__ProductCode__c'] === 'CMU_COURSES'){
+          courses[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
+          parent_CMU_BOND_BEAM[parentKey] = parent;
+        }
+      }
+    });
+
+    if(parent_CMU_BOND_BEAM){
+      parent_CMU_BOND_BEAM.forEach(function(parent_line, key){
+        parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
+
+        parent_line.record['Custom_Package_Total__c'] = parent_line.record['SBQQ__Quantity__c'] * parent_line.record['SBQQ__NetPrice__c'];
+      });
+    }
+  }
 }
 
 
@@ -172,6 +209,8 @@ function setComponentZeroQuant(lines){
 }
 
 
+
+
 /**
  * 
  * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
@@ -194,10 +233,7 @@ function calc_CMU_BLOCK(quoteLineModels){
   var rows_CMU_GROUT_SOLID = [];
   var line_CMU_GROUT_SOLID = [];
   var line_CMU_GROUT_REBAR = [];
-  var rows_CMU_BOND_BEAM = [];
-  var line_CMU_BOND_BEAM = [];
-  var cost_CMU_BOND_BEAM = 0;
-  var line_CMU_BOND_Quantity = [];
+  
 
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line) {
@@ -207,7 +243,6 @@ function calc_CMU_BLOCK(quoteLineModels){
       /* Cost Inputs */
       if(line.record['SBQQ__ProductCode__c'] === 'CONCRETE_3000_PY_COST'){ costConcretePY = line.record['SBQQ__UnitCost__c']; }
       if(line.record['SBQQ__ProductCode__c'] === 'CONCRETE_DELIVERY'){ costConcreteDelivery = line.record['SBQQ__UnitCost__c']; }
-      if(line.record['SBQQ__ProductCode__c'] === 'CMU_ROWS_BOND_BEAM'){ cost_CMU_BOND_BEAM = line.record['SBQQ__UnitCost__c']; }
 
       /* Parent Block Quote Template Line Items Section */
       var filterLine_CMU_BLOCK_IN = line.record['SBQQ__ProductCode__c'].substring(0,10) + line.record['SBQQ__ProductCode__c'].slice(line.record['SBQQ__ProductCode__c'].length - 2);
@@ -222,9 +257,7 @@ function calc_CMU_BLOCK(quoteLineModels){
         if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN'){line.record['Quote_Line_Item_Section__c'] = 'Block'}
 
         /* Quantity of Block */
-        if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'].substring(0, 16) === 'CMU_BLOCK_QUANT_'){
-          line_CMU_BOND_Quantity[parentKey] = line;
-        }
+        
         if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_LF'){
           cmuLF[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
           parent_CMU_BLOCK[parentKey] = parent;
@@ -267,12 +300,6 @@ function calc_CMU_BLOCK(quoteLineModels){
         if(line.record['SBQQ__ProductCode__c'] === 'CMU_GROUT_SOLID_V_REBAR'){
           line_CMU_GROUT_REBAR[parentKey] = line;
         }
-
-        /* Bond Beam */
-        if(line.record['SBQQ__ProductCode__c'] === 'CMU_ROWS_BOND_BEAM'){
-          rows_CMU_BOND_BEAM[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
-          line_CMU_BOND_BEAM[parentKey] = line;
-        }
       }
     }); // END OF LINES
 
@@ -284,8 +311,6 @@ function calc_CMU_BLOCK(quoteLineModels){
 
         /* Quantity of Block */
         parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
-        line_CMU_BOND_Quantity[key].record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
-        line_CMU_BOND_Quantity[key].record['SBQQ__NetPrice__c'] = slabBlockPrice(Math.ceil(cmuLF[key] * courses[key] / 1.33), line_CMU_BOND_Quantity[key].record['SBQQ__NetPrice__c'].valueOf());
 
         /* Durawall */
         if(line_CMU_DURAWALL[key]){
@@ -323,14 +348,6 @@ function calc_CMU_BLOCK(quoteLineModels){
           var tmpPriceGrout = tmpRebarFillYards * costConcretePY + Math.ceil(tmpRebarFillYards / 10) * costConcreteDelivery;
           line_CMU_GROUT_REBAR[key].record['SBQQ__NetPrice__c'] = tmpPriceGrout;
         }
-
-        /* Bond Beam */
-        if(line_CMU_BOND_BEAM[key]){
-          var tmpNoBondBeamBlocks = Math.ceil(cmuLF[key] / 1.33) * rows_CMU_BOND_BEAM[key];
-          line_CMU_BOND_BEAM[key].record['SBQQ__NetPrice__c'] = tmpNoBondBeamBlocks * cost_CMU_BOND_BEAM / rows_CMU_GROUT_SOLID[key];
-          //console.log(tmpNoBondBeamBlocks * cost_CMU_BOND_BEAM / rows_CMU_GROUT_SOLID[key]);
-        }
-
 
         /**
          * SF PAckage Total Question
