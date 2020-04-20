@@ -1,6 +1,6 @@
 
 // SET TO FALSE IN PRODUCTION
-const DEBUG = true;
+const DEBUG = false;
 
 function debug(...args) {
   if (DEBUG) {
@@ -98,6 +98,40 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
     resolve();
   });
 }
+
+
+function slabBlockPrice(quant, onePrice){
+  var tmpTotalPrice = 0;
+  var noLeft = quant;
+
+  if(onePrice == 13){
+    return onePrice;
+  }
+
+  if(noLeft - 1000 > 0){
+    tmpTotalPrice = tmpTotalPrice + (noLeft - 1000) * (onePrice - 5);
+    noLeft = 1000;
+  }
+  if(noLeft - 650 > 0){
+    tmpTotalPrice = tmpTotalPrice + (noLeft - 650) * (onePrice - 4);
+    noLeft = 650;
+  }
+  if(noLeft - 400 > 0){
+    tmpTotalPrice = tmpTotalPrice + (noLeft - 400) * (onePrice - 3);
+    noLeft = 400;
+  }
+  if(noLeft - 250 > 0){
+    tmpTotalPrice = tmpTotalPrice + (noLeft - 250) * (onePrice - 2);
+    noLeft = 250;
+  }
+  if(noLeft - 100 > 0){
+    tmpTotalPrice = tmpTotalPrice + (noLeft - 100) * (onePrice - 1);
+    noLeft = 100;
+  }
+  tmpTotalPrice = tmpTotalPrice + (noLeft * onePrice);
+  return tmpTotalPrice / quant;
+}
+
 
 /**
  * 
@@ -251,6 +285,7 @@ function calc_CMU_BLOCK(quoteLineModels){
         /* Quantity of Block */
         parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
         line_CMU_BOND_Quantity[key].record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
+        line_CMU_BOND_Quantity[key].record['SBQQ__NetPrice__c'] = slabBlockPrice(Math.ceil(cmuLF[key] * courses[key] / 1.33), line_CMU_BOND_Quantity[key].record['SBQQ__NetPrice__c'].valueOf());
 
         /* Durawall */
         if(line_CMU_DURAWALL[key]){
