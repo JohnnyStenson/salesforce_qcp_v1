@@ -1,3 +1,5 @@
+/src/qcp.ts is the working version.
+
 # SFDC QCP Extension
 
 This file was created from the SFDC QCP VSCode extension.
