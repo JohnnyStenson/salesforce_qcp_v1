@@ -14,11 +14,11 @@ function debug(...args) {
  * @returns {Promise}
  */
 export function onInit(quoteLineModels) {
-  if (quoteLineModels != null) {
+  /*if (quoteLineModels != null) {
     quoteLineModels.forEach(function (line) {
       line.record["Custom_Package_Total__c"] = 0;
     });
-  }  
+  }  */
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
     /*console.log('JJS73 onInit');
@@ -89,7 +89,9 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
   console.dir(quoteLineModels);
   calc_CMU_BLOCK(quoteLineModels);
   calc_BOND_BEAM(quoteLineModels);
+  slabBlockPriceQuote(quoteLineModels);
   addCPT(quoteLineModels);
+  rollupCPTtoParent(quoteLineModels);
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
 
@@ -101,11 +103,38 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
 }
 
 
+/**
+ * SF PAckage Total Question
+ * https://success.salesforce.com/0D53A00004s13b8
+ */
+function rollupCPTtoParent(quoteLineModels){
+  /* Roll Up Package Total to Parent */
+  quoteLineModels.forEach(function(line) {
+    line.record['Custom_Package_Total__c'] = 0;
+    if(line.record['SBQQ__NetPrice__c'] > 0){
+      line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
+    }
+    var parent = line.parentItem;
+    if(parent){
+      var filterPC_CMU_BLOCK_IN = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
+
+      //if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN'){
+        /* Compute line.CPT */
+        line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
+
+        /* Add line.CPT to parent.CPT */
+        parent.record['Custom_Package_Total__c'] = parent.record['Custom_Package_Total__c'] + line.record['Custom_Package_Total__c'];
+      //} //is line duping?
+
+      
+    }
+  });
+}
+
 function calc_BOND_BEAM(quoteLineModels){
   var parent_CMU_BOND_BEAM = [];
   var cmuLF = [];
   var courses = [];
-  var line_CMU_BOND_BEAM = [];
 
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line) {
@@ -133,6 +162,66 @@ function calc_BOND_BEAM(quoteLineModels){
         parent_line.record['Custom_Package_Total__c'] = parent_line.record['SBQQ__Quantity__c'] * parent_line.record['SBQQ__NetPrice__c'];
       });
     }
+  }
+}
+
+
+function slabBlockPriceQuote(quoteLineModels){
+  if (quoteLineModels != null) {
+    var quant_08 = 0;
+    var price_08 = 0;
+    var line_08 = [];
+    var slabbed_price_08 = 0;
+    var quant_10 = 0;
+    var price_10 = 0;
+    var line_10 = [];
+    var slabbed_price_10 = 0;
+    var quant_12 = 0;
+    var price_12 = 0;
+    var line_12 = [];
+    var slabbed_price_12 = 0;
+
+    quoteLineModels.forEach(function(line) {
+      if('CMU_BLOCK_QUANT_08IN' === line.record['SBQQ__ProductCode__c']){
+        quant_08 = quant_08 + line.record['SBQQ__Quantity__c'];
+        price_08 = line.record['SBQQ__NetPrice__c'];
+        line_08.push(line);
+        console.log('quant8: ' + quant_08);
+      }
+
+      if('CMU_BLOCK_QUANT_10IN' === line.record['SBQQ__ProductCode__c']){
+        quant_10 = quant_10 + line.record['SBQQ__Quantity__c'];
+        price_10 = line.record['SBQQ__NetPrice__c'];
+        line_10.push(line);
+      }
+
+      if('CMU_BLOCK_QUANT_12IN' === line.record['SBQQ__ProductCode__c']){
+        quant_12 = quant_12 + line.record['SBQQ__Quantity__c'];
+        price_12 = line.record['SBQQ__NetPrice__c'];
+        line_12.push(line);
+      }
+    });
+
+    slabbed_price_08 = slabBlockPrice(quant_08, price_08);
+    slabbed_price_10 = slabBlockPrice(quant_10, price_10);
+    slabbed_price_12 = slabBlockPrice(quant_12, price_12);
+
+    console.log('slabbed_price_08: ' + slabbed_price_08);
+    console.log('slabbed_price_10: ' + slabbed_price_10);
+    console.log('slabbed_price_12: ' + slabbed_price_12);
+
+    line_08.forEach(function(line){
+      line.record['SBQQ__NetPrice__c'] = slabbed_price_08;
+      line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
+    });
+    line_10.forEach(function(line){
+      line.record['SBQQ__NetPrice__c'] = slabbed_price_10;
+      line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
+    });
+    line_12.forEach(function(line){
+      line.record['SBQQ__NetPrice__c'] = slabbed_price_12;
+      line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
+    });
   }
 }
 
@@ -177,6 +266,7 @@ function slabBlockPrice(quant, onePrice){
  */
 function addCPT(quoteLineModels){
   var linesToZeroQuantity = [];
+  return;
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line) {
       if(line.record['SBQQ__ProductCode__c'] === 'CMU_BLOCK_AIR_VENT'){ 
@@ -233,7 +323,7 @@ function calc_CMU_BLOCK(quoteLineModels){
   var rows_CMU_GROUT_SOLID = [];
   var line_CMU_GROUT_SOLID = [];
   var line_CMU_GROUT_REBAR = [];
-  
+  var line_QUANT_BLOCK = [];
 
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line) {
@@ -257,7 +347,9 @@ function calc_CMU_BLOCK(quoteLineModels){
         if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN'){line.record['Quote_Line_Item_Section__c'] = 'Block'}
 
         /* Quantity of Block */
-        
+        if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'].substring(0, 16) === 'CMU_BLOCK_QUANT_'){
+          line_QUANT_BLOCK[parentKey] = line;
+        }
         if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'CMU_LF'){
           cmuLF[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
           parent_CMU_BLOCK[parentKey] = parent;
@@ -311,6 +403,7 @@ function calc_CMU_BLOCK(quoteLineModels){
 
         /* Quantity of Block */
         parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
+        line_QUANT_BLOCK[key].record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
 
         /* Durawall */
         if(line_CMU_DURAWALL[key]){
@@ -349,33 +442,7 @@ function calc_CMU_BLOCK(quoteLineModels){
           line_CMU_GROUT_REBAR[key].record['SBQQ__NetPrice__c'] = tmpPriceGrout;
         }
 
-        /**
-         * SF PAckage Total Question
-         * https://success.salesforce.com/0D53A00004s13b8
-         */
-        /* Roll Up Package Total to Parent */
-        quoteLineModels.forEach(function(line) {
-          line.record['Custom_Package_Total__c'] = 0;
-        });
-        quoteLineModels.forEach(function(line) {
-          var parent = line.parentItem;
-          if(parent){
-            var filterPC_CMU_BLOCK_IN = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
-
-            if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN'){
-              /* Compute line.CPT */
-              line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
-
-              /* Add line.CPT to parent.CPT */
-              parent.record['Custom_Package_Total__c'] = parent.record['Custom_Package_Total__c'] + line.record['Custom_Package_Total__c'];
-
-              /*console.log('childCPT ' + line.record['SBQQ__ProductName__c'] + ': ' + line.record['Custom_Package_Total__c']);
-              console.dir(line);
-              console.log('parentCPT ' + parent.record['SBQQ__ProductName__c'] + ': ' + parent.record['Custom_Package_Total__c']);
-              console.dir(parent);*/
-            } //is line duping?
-          }
-        });
+        
       });
     }
 
