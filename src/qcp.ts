@@ -90,7 +90,7 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
   calc_CMU_BLOCK(quoteLineModels);
   calc_BOND_BEAM(quoteLineModels);
   slabBlockPriceQuote(quoteLineModels);
-  addCPT(quoteLineModels);
+  //addCPT(quoteLineModels);
   rollupCPTtoParent(quoteLineModels);
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
@@ -111,22 +111,18 @@ function rollupCPTtoParent(quoteLineModels){
   /* Roll Up Package Total to Parent */
   quoteLineModels.forEach(function(line) {
     line.record['Custom_Package_Total__c'] = 0;
-    if(line.record['SBQQ__NetPrice__c'] > 0){
-      line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
-    }
-    var parent = line.parentItem;
-    if(parent){
-      var filterPC_CMU_BLOCK_IN = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
-
-      //if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN'){
+    if('Block' == line.record['Quote_Line_Item_Section__c']){
+      if(line.record['SBQQ__NetPrice__c'] > 0){
+        line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
+      }
+      var parent = line.parentItem;
+      if(parent){
         /* Compute line.CPT */
         line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
 
         /* Add line.CPT to parent.CPT */
         parent.record['Custom_Package_Total__c'] = parent.record['Custom_Package_Total__c'] + line.record['Custom_Package_Total__c'];
-      //} //is line duping?
-
-      
+      }
     }
   });
 }
@@ -263,7 +259,7 @@ function slabBlockPrice(quant, onePrice){
  * 
  * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
  * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
- */
+ 
 function addCPT(quoteLineModels){
   var linesToZeroQuantity = [];
   return;
@@ -274,8 +270,8 @@ function addCPT(quoteLineModels){
         line.record['SBQQ__NetPrice__c'] = line.record['Custom_Package_Total__c']; 
         line.record['Quote_Line_Item_Section__c'] = 'Block';
         
-        /* console.log('Components');
-        console.dir(line.components); */
+        console.log('Components');
+        console.dir(line.components); 
         var tmpNetUnitPrice = 0;
         line.components.forEach(function (lineZero) {
           tmpNetUnitPrice += lineZero.record['SBQQ__NetPrice__c'];
@@ -287,7 +283,7 @@ function addCPT(quoteLineModels){
 
     setComponentZeroQuant(linesToZeroQuantity);
   }
-}
+}*/
 
 
 function setComponentZeroQuant(lines){
@@ -404,6 +400,7 @@ function calc_CMU_BLOCK(quoteLineModels){
         /* Quantity of Block */
         parent_line.record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
         line_QUANT_BLOCK[key].record['SBQQ__Quantity__c'] = Math.ceil(cmuLF[key] * courses[key] / 1.33);
+        parent_line.record['SBQQ__Description__c'] = cmuLF[key] + " LF,  " + courses[key] + " course(s) ";
 
         /* Durawall */
         if(line_CMU_DURAWALL[key]){
