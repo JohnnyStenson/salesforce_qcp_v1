@@ -372,6 +372,7 @@ function calc_CMU_BLOCK(quoteLineModels){
           intInOC[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(15, 2), 10);
         }
         if('REBAR__BAR' === filterPC_Rebar && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']){
+          line.record['Quote_Line_Item_Section__c'] = 'Block';
           descrRebarSize[parent.parentItem.key] = line.record['SBQQ__Description__c'];
           intRebarSize[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(6, 1), 10);
           parent_CMU_V_REBAR[parent.parentItem.key] = parent;
