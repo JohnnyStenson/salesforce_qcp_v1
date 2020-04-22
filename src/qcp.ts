@@ -315,7 +315,6 @@ function calc_CMU_BLOCK(quoteLineModels){
   var line_V_REBAR_BAR = [];
   var line_CMU_DURAWALL = [];
   var costConcretePY = 0;
-  var costConcreteDelivery = 0;
   var rows_CMU_GROUT_SOLID = [];
   var line_CMU_GROUT_SOLID = [];
   var line_CMU_GROUT_REBAR = [];
@@ -328,7 +327,6 @@ function calc_CMU_BLOCK(quoteLineModels){
       
       /* Cost Inputs */
       if(line.record['SBQQ__ProductCode__c'] === 'CONCRETE_3000_PY_COST'){ costConcretePY = line.record['SBQQ__UnitCost__c']; }
-      if(line.record['SBQQ__ProductCode__c'] === 'CONCRETE_DELIVERY'){ costConcreteDelivery = line.record['SBQQ__UnitCost__c']; }
 
       /* Parent Block Quote Template Line Items Section */
       var filterLine_CMU_BLOCK_IN = line.record['SBQQ__ProductCode__c'].substring(0,10) + line.record['SBQQ__ProductCode__c'].slice(line.record['SBQQ__ProductCode__c'].length - 2);
@@ -429,14 +427,14 @@ function calc_CMU_BLOCK(quoteLineModels){
         if(line_CMU_GROUT_SOLID[key]){
           var tmpBlocks = Math.ceil(cmuLF[key] / 1.33 * rows_CMU_GROUT_SOLID[key]);
           var tmpFillYards = tmpBlocks * factorBlockFillYards(inchBlock[key]) / 27;
-          var tmpPriceSolidGrout = tmpFillYards * costConcretePY + Math.ceil(tmpFillYards / 10) * costConcreteDelivery;
+          var tmpPriceSolidGrout = tmpFillYards * costConcretePY;
           line_CMU_GROUT_SOLID[key].record['SBQQ__NetPrice__c'] = tmpPriceSolidGrout / rows_CMU_GROUT_SOLID[key];
         }
 
         /* Grout Rebar Cells */
         if(line_CMU_GROUT_REBAR[key]){
           var tmpRebarFillYards = (courses[key]) * Math.ceil(cmuLF[key] / (intInOC[key] / 12)) * factorRebarCellsFillYards(inchBlock[key]) / 27;
-          var tmpPriceGrout = tmpRebarFillYards * costConcretePY + Math.ceil(tmpRebarFillYards / 10) * costConcreteDelivery;
+          var tmpPriceGrout = tmpRebarFillYards * costConcretePY;
           line_CMU_GROUT_REBAR[key].record['SBQQ__NetPrice__c'] = tmpPriceGrout;
         }
 
