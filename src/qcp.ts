@@ -315,7 +315,8 @@ function calc_CMU_BLOCK(quoteLineModels){
   var line_V_REBAR_BAR = [];
   var line_CMU_DURAWALL = [];
   var costConcretePY = 0;
-  var rows_CMU_GROUT_SOLID = [];
+  var costLaborPerFillYard = 0;
+  var costLaborPerRebarBar = [];
   var line_CMU_GROUT_SOLID = [];
   var line_CMU_GROUT_REBAR = [];
   var line_QUANT_BLOCK = [];
@@ -326,7 +327,9 @@ function calc_CMU_BLOCK(quoteLineModels){
       var parent = line.parentItem;
       
       /* Cost Inputs */
-      if(line.record['SBQQ__ProductCode__c'] === 'CONCRETE_3000_PY_COST'){ costConcretePY = line.record['SBQQ__UnitCost__c']; }
+      if(line.record['SBQQ__ProductCode__c'] === 'CONCRETE_3000_PY_COST'){ 
+        costConcretePY = line.record['SBQQ__UnitCost__c']; 
+      }
 
       /* Parent Block Quote Template Line Items Section */
       var filterLine_CMU_BLOCK_IN = line.record['SBQQ__ProductCode__c'].substring(0,10) + line.record['SBQQ__ProductCode__c'].slice(line.record['SBQQ__ProductCode__c'].length - 2);
@@ -336,6 +339,10 @@ function calc_CMU_BLOCK(quoteLineModels){
         var parentKey = parent.key;
         var filterPC_CMU_BLOCK_IN = parent.record['SBQQ__ProductCode__c'].substring(0,10) + parent.record['SBQQ__ProductCode__c'].slice(parent.record['SBQQ__ProductCode__c'].length - 2);
         
+        /* Grout Labor */
+        if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN' && line.record['SBQQ__ProductCode__c'] === 'LABOR_PER_FILL_YARD_GROUT'){
+          costLaborPerFillYard = line.record['SBQQ__UnitCost__c'];
+        }
 
         /* Block Quote Template Line Items Section */
         if(filterPC_CMU_BLOCK_IN === 'CMU_BLOCK_IN'){line.record['Quote_Line_Item_Section__c'] = 'Block'}
@@ -376,11 +383,13 @@ function calc_CMU_BLOCK(quoteLineModels){
           parent_CMU_V_REBAR[parent.parentItem.key] = parent;
           line_V_REBAR_BAR[parent.parentItem.key] = line;
         }
+        if('LABOR_PER_REBAR_BAR' == line.record['SBQQ__ProductCode__c'] && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']){
+          costLaborPerRebarBar[parent.parentItem.key] = line.record['SBQQ__UnitCost__c']
+        }
         
         /* Solid Grout */
         if(line.record['SBQQ__ProductCode__c'] === 'CMU_GROUT_SOLID'){
           line_CMU_GROUT_SOLID[parentKey] = line;
-          rows_CMU_GROUT_SOLID[parentKey] = line.record['SBQQ__Quantity__c'].valueOf();
         }
 
         /* Grout Rebar Cells */
@@ -418,23 +427,23 @@ function calc_CMU_BLOCK(quoteLineModels){
             tmpVRebarBars = Math.ceil(tmpHeight * tmpQtyRebar / 20);
           }
           parent_CMU_V_REBAR[key].record['SBQQ__Quantity__c'] = tmpVRebarBars;
-          parent_CMU_V_REBAR[key].record['SBQQ__NetPrice__c'] = line_V_REBAR_BAR[key].record['SBQQ__ListPrice__c'];
+          parent_CMU_V_REBAR[key].record['SBQQ__NetPrice__c'] = line_V_REBAR_BAR[key].record['SBQQ__ListPrice__c'] + costLaborPerRebarBar[key];
           line_V_REBAR_BAR[key].record['SBQQ__Quantity__c'] = 0;
           //parent_CMU_V_REBAR[key].record['SBQQ__PackageTotal__c'] = parent_CMU_V_REBAR[key].record['SBQQ__NetTotal__c'];
         }
 
         /* Solid Grout */
         if(line_CMU_GROUT_SOLID[key]){
-          var tmpBlocks = Math.ceil(cmuLF[key] / 1.33 * rows_CMU_GROUT_SOLID[key]);
+          var tmpBlocks = Math.ceil(cmuLF[key] / 1.33 * courses[key]);
           var tmpFillYards = tmpBlocks * factorBlockFillYards(inchBlock[key]) / 27;
-          var tmpPriceSolidGrout = tmpFillYards * costConcretePY;
-          line_CMU_GROUT_SOLID[key].record['SBQQ__NetPrice__c'] = tmpPriceSolidGrout / rows_CMU_GROUT_SOLID[key];
+          var tmpPriceSolidGrout = tmpFillYards * ( costConcretePY + costLaborPerFillYard ); 
+          line_CMU_GROUT_SOLID[key].record['SBQQ__NetPrice__c'] = tmpPriceSolidGrout;
         }
 
         /* Grout Rebar Cells */
         if(line_CMU_GROUT_REBAR[key]){
           var tmpRebarFillYards = (courses[key]) * Math.ceil(cmuLF[key] / (intInOC[key] / 12)) * factorRebarCellsFillYards(inchBlock[key]) / 27;
-          var tmpPriceGrout = tmpRebarFillYards * costConcretePY;
+          var tmpPriceGrout = tmpRebarFillYards * ( costConcretePY + costLaborPerFillYard ); 
           line_CMU_GROUT_REBAR[key].record['SBQQ__NetPrice__c'] = tmpPriceGrout;
         }
 
