@@ -345,6 +345,9 @@ function calc_LinearTrenchFootings(quoteLineModels){
 
   var lineArrayConcreteChems = [];
 
+  var lineChair = [];
+  var intChairInOC = [];
+
   if (quoteLineModels != null) {
     quoteLineModels.forEach(function(line, key) {
       var parent = line.parentItem;
@@ -475,6 +478,16 @@ function calc_LinearTrenchFootings(quoteLineModels){
             if(null == lineArrayConcreteChems[parentKey]){ lineArrayConcreteChems[parentKey] = []; }
             lineArrayConcreteChems[parentKey].push(line);
           }
+
+          /* Chairs */
+          if('CHAIR_' == line.record['SBQQ__ProductCode__c'].substring(0, 6)){
+            lineChair[parentKey] = line;
+          }
+          /* Off Center */
+          if('CMU_V_REBAR_OC_' == line.record['SBQQ__ProductCode__c'].substring(0, 15) && 'CHAIR_' == parent.record['SBQQ__ProductCode__c'].substring(0, 6)){
+            parent.record['SBQQ__Description__c'] = line.record['SBQQ__Description__c'];
+            intChairInOC[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(15, 2), 10);
+          }
         }
       
       }
@@ -553,13 +566,18 @@ function calc_LinearTrenchFootings(quoteLineModels){
         }
 
         /* Match Yards for Concrete Chems */
-        console.log('Chems: ');
-        console.dir(lineArrayConcreteChems);
         if(lineArrayConcreteChems[key]){
           lineArrayConcreteChems[key].forEach(function(lineChem){
             lineChem.record['SBQQ__Quantity__c'] = Math.ceil(length[key] * width[key] * depth[key] / 27);
           });
         }
+
+        /* Chairs */ 
+        if(lineChair[key]){
+          var quantChairs = Math.ceil(length[key] / (intChairInOC[key] / 12) + 1) / Math.floor(5 / (width[key] - .5));
+          lineChair[key].record['SBQQ__Quantity__c'] = quantChairs * 5;
+        }
+        
       });
     }
 
