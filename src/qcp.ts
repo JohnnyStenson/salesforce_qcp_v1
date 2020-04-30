@@ -113,23 +113,27 @@ function rollupCPTtoParent(quoteLineModels){
   /* Roll Up Package Total to Parent */
   quoteLineModels.forEach(function(line) {
     line.record['Custom_Package_Total__c'] = 0;
-    //if('Block' == line.record['Quote_Line_Item_Section__c']){
+
+    if(line.record['SBQQ__NetPrice__c'] > 0){
+      line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
+    }
+    var parent = line.parentItem;
+    if(parent){
+      /* Compute line.CPT */
       if(line.record['SBQQ__NetPrice__c'] > 0){
         line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
+      }else{
+        line.record['Custom_Package_Total__c'] = line.record['SBQQ__PackageTotal__c'];
       }
-      var parent = line.parentItem;
-      if(parent){
-        /* Compute line.CPT */
-        line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
-        
-        /* Add line.CPT to parent.CPT */
-        parent.record['Custom_Package_Total__c'] = parent.record['Custom_Package_Total__c'] + line.record['Custom_Package_Total__c'];
+      
+      /* Add line.CPT to parent.CPT */
+      parent.record['Custom_Package_Total__c'] = parent.record['Custom_Package_Total__c'] + line.record['Custom_Package_Total__c'];
 
-        if(parent.parentItem){
-          parent.record['Custom_Package_Total__c'] = parent.record['SBQQ__PackageTotal__c'];
-        }
+      if(parent.parentItem){
+        parent.record['Custom_Package_Total__c'] = parent.record['SBQQ__PackageTotal__c'];
       }
-    //}
+    }
+
   });
 }
 
