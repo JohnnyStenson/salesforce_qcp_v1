@@ -429,6 +429,7 @@ function calc_LinearTrenchFootings(quoteLineModels){
           /* collect Dowel rebar inputs */
           if('DOWEL_REBAR' == parent.record['SBQQ__ProductCode__c']){
             lineDowelRebar[parent.parentItem.key] = parent;
+
             /* Rebar Line and Size */
             if('REBAR__BAR' == line.record['SBQQ__ProductCode__c'].substring(0, 6) + line.record['SBQQ__ProductCode__c'].slice(line.record['SBQQ__ProductCode__c'].length - 4)){
               intDowelRebarSize[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(6, 1), 10);
@@ -437,9 +438,9 @@ function calc_LinearTrenchFootings(quoteLineModels){
             }
 
             /* Off Center */
-            if('CMU_V_REBAR_OC_' == line.record['SBQQ__ProductCode__c'].substring(0, 15)){
-              descrDowelInOC[parent.parentItem.key] = line.record['SBQQ__Description__c'];
-              intDowelInOC[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(15, 2), 10);
+            if('INCHES_OC' == line.record['SBQQ__ProductCode__c']){
+              descrDowelInOC[parent.parentItem.key] = line.record['SBQQ__Quantity__c'] + '" O.C.';
+              intDowelInOC[parent.parentItem.key] = line.record['SBQQ__Quantity__c'];
             }
 
             /* Overlap Diameter */
@@ -465,9 +466,9 @@ function calc_LinearTrenchFootings(quoteLineModels){
             }
 
             /* Off Center */
-            if('CMU_V_REBAR_OC_' == line.record['SBQQ__ProductCode__c'].substring(0, 15)){
-              descrTransvInOC[parent.parentItem.key] = line.record['SBQQ__Description__c'];
-              intTransvInOC[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(15, 2), 10);
+            if('INCHES_OC' == line.record['SBQQ__ProductCode__c']){
+              descrTransvInOC[parent.parentItem.key] = line.record['SBQQ__Quantity__c'] + '" O.C.';
+              intTransvInOC[parent.parentItem.key] = line.record['SBQQ__Quantity__c'];
             }
 
             /* Labor */
@@ -488,9 +489,9 @@ function calc_LinearTrenchFootings(quoteLineModels){
             lineChair[parentKey] = line;
           }
           /* Off Center */
-          if('CMU_V_REBAR_OC_' == line.record['SBQQ__ProductCode__c'].substring(0, 15) && 'CHAIR_' == parent.record['SBQQ__ProductCode__c'].substring(0, 6)){
-            parent.record['SBQQ__Description__c'] = line.record['SBQQ__Description__c'];
-            intChairInOC[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(15, 2), 10);
+          if('INCHES_OC' == line.record['SBQQ__ProductCode__c'] && 'CHAIR_' == parent.record['SBQQ__ProductCode__c'].substring(0, 6)){
+            parent.record['SBQQ__Description__c'] = line.record['SBQQ__Quantity__c'] + '" O.C.';
+            intChairInOC[parent.parentItem.key] = line.record['SBQQ__Quantity__c'];
           }
         }
       
@@ -578,8 +579,9 @@ function calc_LinearTrenchFootings(quoteLineModels){
 
         /* Chairs */ 
         if(lineChair[key]){
-          var quantChairs = Math.ceil(length[key] / (intChairInOC[key] / 12) + 1) / Math.floor(5 / (width[key] - .5));
-          lineChair[key].record['SBQQ__Quantity__c'] = quantChairs * 5;
+          var quantChairs = Math.ceil(Math.ceil((length[key] / (intChairInOC[key] / 12)) + 1) / Math.floor(5 / (width[key] - .5)));
+          //console.log('quantChairs = Math.ceil((' + length[key] + ' / (' + intChairInOC[key] + '/ 12)) + 1) / Math.floor(5 / (' + width[key] + ' - .5))');
+          lineChair[key].record['SBQQ__Quantity__c'] = quantChairs;
         }
         
       });
@@ -627,7 +629,7 @@ function calc_CMU_BLOCK(quoteLineModels){
 
       /* Parent Block Quote Template Line Items Section */
       var filterLine_CMU_BLOCK_IN = line.record['SBQQ__ProductCode__c'].substring(0,10) + line.record['SBQQ__ProductCode__c'].slice(line.record['SBQQ__ProductCode__c'].length - 2);
-      if(filterLine_CMU_BLOCK_IN === 'CMU_BLOCK_IN'){line.record['Quote_Line_Item_Section__c'] = 'Block'}
+      if(filterLine_CMU_BLOCK_IN === 'CMU_BLOCK_IN'){line.record['Quote_Line_Item_Section__c'] = 'Block';}
 
       if (parent != null) {
         var parentKey = parent.key;
@@ -662,13 +664,13 @@ function calc_CMU_BLOCK(quoteLineModels){
         }
 
         /* Vertical Rebar */
-        var filterPC_OC = line.record['SBQQ__ProductCode__c'].substring(0, 15);
         var filterPC_Rebar = line.record['SBQQ__ProductCode__c'].substring(0, 6) + line.record['SBQQ__ProductCode__c'].slice(line.record['SBQQ__ProductCode__c'].length - 4);
 
-        if('CMU_V_REBAR_OC_' === filterPC_OC && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']){
-          descrInOC[parent.parentItem.key] = line.record['SBQQ__Description__c'];
+        if('INCHES_OC' == line.record['SBQQ__ProductCode__c'] && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']){
+          descrInOC[parent.parentItem.key] = line.record['SBQQ__Quantity__c'] + '" O.C.';
           parent_CMU_V_REBAR[parent.parentItem.key] = parent;
-          intInOC[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(15, 2), 10);
+          intInOC[parent.parentItem.key] = line.record['SBQQ__Quantity__c'];
+          line.record['Quote_Line_Item_Section__c'] = 'Block';
         }
         if('REBAR__BAR' === filterPC_Rebar && 'CMU_V_REBAR' === parent.record['SBQQ__ProductCode__c']){
           line.record['Quote_Line_Item_Section__c'] = 'Block';
