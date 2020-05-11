@@ -113,6 +113,7 @@ function rollupCPTtoParent(quoteLineModels){
   /* Roll Up Package Total to Parent */
   quoteLineModels.forEach(function(line) {
     line.record['Custom_Package_Total__c'] = 0;
+    line.record['SBQQ__ComponentVisibility__c']= 'Always';
 
     if(line.record['SBQQ__NetPrice__c'] > 0){
       line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
@@ -133,6 +134,21 @@ function rollupCPTtoParent(quoteLineModels){
         parent.record['Custom_Package_Total__c'] = parent.record['SBQQ__PackageTotal__c'];
       }
     }
+
+  });
+  quoteLineModels.forEach(function(line) {
+    /* Special Cases */
+    if(
+      'CMU_V_REBAR' == line.record['SBQQ__ProductCode__c'] ||
+      'DOWEL_REBAR' == line.record['SBQQ__ProductCode__c'] ||
+      'HORIZ_REBAR' == line.record['SBQQ__ProductCode__c'] ||
+      'TRANSVERSE_REBAR' == line.record['SBQQ__ProductCode__c'] ||
+      'CHAIR_3IN_5FT' == line.record['SBQQ__ProductCode__c'] || 
+      'CHAIR_6IN_5FT' == line.record['SBQQ__ProductCode__c'] 
+    ){ 
+      line.record['Custom_Package_Total__c'] = line.record['SBQQ__Quantity__c'] * line.record['SBQQ__NetPrice__c'];
+    }
+
 
   });
 }
@@ -594,6 +610,84 @@ function calc_LinearTrenchFootings(quoteLineModels){
 
 
 /**
+ * COPY/PASTE
+ * 
+ * TEMPLATE FUNCTION FOR NEW calc_PRODUCT
+ * 
+ */
+function TEMPLATE__calc_Product(quoteLineModels){
+  var parent_Product = [];
+  var lineChild = [];
+  var inchBlock =[];
+  var cmuLF = [];
+  var courses = [];
+
+  if (quoteLineModels != null) {
+    quoteLineModels.forEach(function(line) {
+      var parent = line.parentItem;
+      
+      /* Quote_Line_Item_Section__c Section */
+      if('LINEAR_TRENCH_FOOTINGS' == line.record['SBQQ__ProductCode__c']){
+        line.record['Quote_Line_Item_Section__c'] = 'CPTandPerUnit';
+      }
+
+      /* Cost Inputs */
+      if(line.record['SBQQ__ProductCode__c'] === 'CONCRETE_3000_PY_COST'){ 
+        //costConcretePY = line.record['SBQQ__UnitCost__c']; 
+      }
+
+      if (parent != null) {
+        var parentKey = parent.key;
+        var parentPC = parent.record['SBQQ__ProductCode__c'];
+        if('PAY_ITEM_PRODUCT_CODE' == parentPC){
+          /* store the Parent Product line */
+          parent_Product[parentKey] = parent;
+
+        }
+        /* child or grandchild of Parent Product */
+        if('PAY_ITEM_PRODUCT_CODE' == parentPC || (parent.parentItem && 'PAY_ITEM_PRODUCT_CODE' == parent.parentItem.record['SBQQ__ProductCode__c'])){
+          /* Set Quote_Line_Item_Section__c */
+          line.record['Quote_Line_Item_Section__c'] = 'CPTandPerUnit';
+
+          /* collect inputs */
+          if('NOMINAL_LENGTH' == line.record['SBQQ__ProductCode__c']){
+            length[parentKey] = line.record['SBQQ__Quantity__c'];
+            /* Description */
+            line.record['SBQQ__Description__c'] = line.record['SBQQ__Quantity__c'] + ' Feet';
+          }
+
+          /* collect inputs of grandchildren */
+          if('HORIZ_REBAR' == parent.record['SBQQ__ProductCode__c']){
+            //lineHorizRebar[parent.parentItem.key] = parent;
+
+            if('REBAR_OVERLAP_DIAMETERS' == line.record['SBQQ__ProductCode__c']){
+              //intHorizRebarOD[parent.parentItem.key] = line.record['SBQQ__Quantity__c'];
+            }
+          }
+
+        }
+      }
+    }); // End of Lines
+
+    /* Calculate and Store Results */
+    if(parent_Product){
+      parent_Product.forEach(function(parent_line, key) {
+
+        /* Pay Item Calc */
+        //parent_line.record['SBQQ__Quantity__c'] = Math.ceil(length[key] * width[key] * depth[key] / 27);
+
+        /* Children Calc */ 
+        if(lineChild[key]){
+          //var quantChairs = Math.ceil(Math.ceil((length[key] / (intChairInOC[key] / 12)) + 1) / Math.floor(5 / (width[key] - .5)));
+
+          //lineChild[key].record['SBQQ__Quantity__c'] = quantChairs;
+        }
+      });
+    }
+  }
+}
+
+/**
  * 
  * @param {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
  * @returns {QuoteLineModel[]} quoteLineModels An array containing JS representations of all lines in the quote
@@ -725,7 +819,7 @@ function calc_CMU_BLOCK(quoteLineModels){
           parent_CMU_V_REBAR[key].record['SBQQ__Quantity__c'] = tmpVRebarBars;
           parent_CMU_V_REBAR[key].record['SBQQ__NetPrice__c'] = line_V_REBAR_BAR[key].record['SBQQ__ListPrice__c'] + costLaborPerRebarBar[key];
           line_V_REBAR_BAR[key].record['SBQQ__Quantity__c'] = 0;
-          //parent_CMU_V_REBAR[key].record['SBQQ__PackageTotal__c'] = parent_CMU_V_REBAR[key].record['SBQQ__NetTotal__c'];
+       
         }
 
         /* Solid Grout */
