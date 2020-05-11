@@ -93,6 +93,7 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
   }
   calc_BOND_BEAM(quoteLineModels);
   calc_LinearTrenchFootings(quoteLineModels);
+  calc_ConcreteSlabSF(quoteLineModels);
   rollupCPTtoParent(quoteLineModels);
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
@@ -627,7 +628,7 @@ function TEMPLATE__calc_Product(quoteLineModels){
       var parent = line.parentItem;
       
       /* Quote_Line_Item_Section__c Section */
-      if('LINEAR_TRENCH_FOOTINGS' == line.record['SBQQ__ProductCode__c']){
+      if('PAY_ITEM_PRODUCT_CODE' == line.record['SBQQ__ProductCode__c']){
         line.record['Quote_Line_Item_Section__c'] = 'CPTandPerUnit';
       }
 
@@ -686,6 +687,128 @@ function TEMPLATE__calc_Product(quoteLineModels){
     }
   }
 }
+
+
+/**
+ * (SF) CONCRETE SLAB = CONCRETE_SLAB_SF
+ */
+function calc_ConcreteSlabSF(quoteLineModels){
+  var parent_Product = [];
+
+  var lineTurnDown =[];
+  var intTurnDownLength = [];
+  var intTurnDownBase1 = [];
+  var intTurnDownBase2 = [];
+  var intTurnDownHeight = [];
+
+  var lineHaunches =[];
+  var intHaunchesLength = [];
+  var intHaunchesBase1 = [];
+  var intHaunchesBase2 = [];
+  var intHaunchesHeight = [];
+
+
+  if (quoteLineModels != null) {
+    quoteLineModels.forEach(function(line) {
+      var parent = line.parentItem;
+      
+      /* Quote_Line_Item_Section__c Section */
+      if('CONCRETE_SLAB_SF' == line.record['SBQQ__ProductCode__c']){
+        line.record['Quote_Line_Item_Section__c'] = 'CPTandPerUnit';
+      }
+
+      /* Cost Inputs */
+      if(line.record['SBQQ__ProductCode__c'] === 'CONCRETE_3000_PY_COST'){ 
+        //costConcretePY = line.record['SBQQ__UnitCost__c']; 
+      }
+
+      if (parent != null) {
+        var parentKey = parent.key;
+        var parentPC = parent.record['SBQQ__ProductCode__c'];
+
+        if('CONCRETE_SLAB_SF' == parentPC){
+          /* store the Parent Product line */
+          parent_Product[parentKey] = parent;
+
+        }
+
+        /* child or grandchild of Parent Product */
+        if('CONCRETE_SLAB_SF' == parentPC || (parent.parentItem && 'CONCRETE_SLAB_SF' == parent.parentItem.record['SBQQ__ProductCode__c'])){
+          /* Set Quote_Line_Item_Section__c */
+          line.record['Quote_Line_Item_Section__c'] = 'CPTandPerUnit';
+
+          /* collect inputs 
+          if('NOMINAL_LENGTH' == line.record['SBQQ__ProductCode__c']){
+            length[parentKey] = line.record['SBQQ__Quantity__c'];*/
+            /* Description 
+            line.record['SBQQ__Description__c'] = line.record['SBQQ__Quantity__c'] + ' Feet';
+          }*/
+
+          /* collect inputs of grandchildren */
+          if('TURN_DOWN' == parent.record['SBQQ__ProductCode__c']){
+            lineTurnDown[parent.parentItem.key] = parent;
+
+            if('NOMINAL_LENGTH' == line.record['SBQQ__ProductCode__c']){
+              intTurnDownLength[parent.parentItem.key] = line.record['SBQQ__Quantity__c'];
+            }
+            if('NOMINAL_IN_BASE1' == line.record['SBQQ__ProductCode__c']){
+              intTurnDownBase1[parent.parentItem.key] = line.record['SBQQ__Quantity__c'] / 12;
+            }
+            if('NOMINAL_IN_BASE2' == line.record['SBQQ__ProductCode__c']){
+              intTurnDownBase2[parent.parentItem.key] = line.record['SBQQ__Quantity__c'] / 12;
+            }
+            if('HEIGHT' == line.record['SBQQ__ProductCode__c']){
+              intTurnDownHeight[parent.parentItem.key] = line.record['SBQQ__Quantity__c'] / 12;
+            }
+          }
+
+          if('HAUNCHES' == parent.record['SBQQ__ProductCode__c']){
+            lineHaunches[parent.parentItem.key] = parent;
+
+            if('NOMINAL_LENGTH' == line.record['SBQQ__ProductCode__c']){
+              intHaunchesLength[parent.parentItem.key] = line.record['SBQQ__Quantity__c'];
+            }
+            if('NOMINAL_IN_BASE1' == line.record['SBQQ__ProductCode__c']){
+              intHaunchesBase1[parent.parentItem.key] = line.record['SBQQ__Quantity__c'] / 12;
+            }
+            if('NOMINAL_IN_BASE2' == line.record['SBQQ__ProductCode__c']){
+              intHaunchesBase2[parent.parentItem.key] = line.record['SBQQ__Quantity__c'] / 12;
+            }
+            if('HEIGHT' == line.record['SBQQ__ProductCode__c']){
+              intHaunchesHeight[parent.parentItem.key] = line.record['SBQQ__Quantity__c'] / 12;
+            }
+          }
+
+        }
+      }
+    }); // End of Lines
+
+    /* Calculate and Store Results */
+    if(parent_Product){
+      parent_Product.forEach(function(parent_line, key) {
+
+        /* Pay Item Calc */
+        //parent_line.record['SBQQ__Quantity__c'] = Math.ceil(length[key] * width[key] * depth[key] / 27);
+
+        /* Children Calc */ 
+        if(lineTurnDown[key]){
+          var yards = Math.ceil(intTurnDownLength[key] * ((intTurnDownBase1[key] + intTurnDownBase2[key]) / 2) * intTurnDownHeight[key] / 27);
+
+          lineTurnDown[key].record['SBQQ__Quantity__c'] = yards;
+        }
+
+        if(lineHaunches[key]){
+          var yards = Math.ceil(intHaunchesLength[key] * ((intHaunchesBase1[key] + intHaunchesBase2[key]) / 2) * intHaunchesHeight[key] / 27);
+
+          lineHaunches[key].record['SBQQ__Quantity__c'] = yards;
+        }
+
+      });
+    }
+  }
+}
+
+
 
 /**
  * 
