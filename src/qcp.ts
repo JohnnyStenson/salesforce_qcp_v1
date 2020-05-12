@@ -94,6 +94,7 @@ export function onAfterCalculate(quoteModel, quoteLineModels) {
   calc_BOND_BEAM(quoteLineModels);
   calc_LinearTrenchFootings(quoteLineModels);
   calc_ConcreteSlabSF(quoteLineModels);
+  calc_PierFootings(quoteLineModels);
   rollupCPTtoParent(quoteLineModels);
   return new Promise((resolve, reject) => {
     // Perform logic here and resolve promise
@@ -801,6 +802,117 @@ function calc_ConcreteSlabSF(quoteLineModels){
           var yards = Math.ceil(intHaunchesLength[key] * ((intHaunchesBase1[key] + intHaunchesBase2[key]) / 2) * intHaunchesHeight[key] / 27);
 
           lineHaunches[key].record['SBQQ__Quantity__c'] = yards;
+        }
+
+      });
+    }
+  }
+}
+
+
+
+/**
+ * PIER FOOTINGS = PIER_FOOTINGS_SITECONCRETE
+ */
+function calc_PierFootings(quoteLineModels){
+  var parent_Product = [];
+
+  var lineMatRebar =[];
+  var intMatRebarSize = [];
+  var descrMatRebarSize = [];
+  var lineMatRebarBar = [];
+  var lineMatRebarLabor = [];
+  var descrMatRebarInOC = [];
+  var intMatRebarInOC =[];
+  var intMatRebarPierLength =[];
+
+  var lineDowelRebar =[];
+  var intHaunchesLength = [];
+  var intHaunchesBase1 = [];
+  var intHaunchesBase2 = [];
+  var intHaunchesHeight = [];
+
+
+  if (quoteLineModels != null) {
+    quoteLineModels.forEach(function(line) {
+      var parent = line.parentItem;
+      
+      /* Quote_Line_Item_Section__c Section */
+      if('PIER_FOOTINGS_SITECONCRETE' == line.record['SBQQ__ProductCode__c']){
+        line.record['Quote_Line_Item_Section__c'] = 'CPTandPerUnit';
+      }
+
+      if (parent != null) {
+        var parentKey = parent.key;
+        var parentPC = parent.record['SBQQ__ProductCode__c'];
+
+        if('PIER_FOOTINGS_SITECONCRETE' == parentPC){
+          /* store the Parent Product line */
+          parent_Product[parentKey] = parent;
+
+        }
+
+        /* child or grandchild */
+        if('PIER_FOOTINGS_SITECONCRETE' == parentPC || (parent.parentItem && 'PIER_FOOTINGS_SITECONCRETE' == parent.parentItem.record['SBQQ__ProductCode__c'])){
+          line.record['Quote_Line_Item_Section__c'] = 'CPTandPerUnit';
+
+          /* collect Matt rebar inputs */
+          if('PF_MAT_REBAR' == parent.record['SBQQ__ProductCode__c']){
+            lineMatRebar[parent.parentItem.key] = parent;
+
+            /* Pier Length */
+            if('NOMINAL_LENGTH' == line.record['SBQQ__ProductCode__c']){
+              intMatRebarPierLength[parent.parentItem.key] = line.record['SBQQ__Quantity__c']; 
+            }
+
+            /* Rebar Line and Size */
+            if('REBAR__BAR' == line.record['SBQQ__ProductCode__c'].substring(0, 6) + line.record['SBQQ__ProductCode__c'].slice(line.record['SBQQ__ProductCode__c'].length - 4)){
+              intMatRebarSize[parent.parentItem.key] = parseInt(line.record['SBQQ__ProductCode__c'].substr(6, 1), 10);
+              descrMatRebarSize[parent.parentItem.key] = line.record['SBQQ__Description__c'];
+              lineMatRebarBar[parent.parentItem.key] = line;
+            }
+
+            /* Off Center */
+            if('INCHES_OC' == line.record['SBQQ__ProductCode__c']){
+              descrMatRebarInOC[parent.parentItem.key] = line.record['SBQQ__Quantity__c'] + '" O.C.';
+              intMatRebarInOC[parent.parentItem.key] = line.record['SBQQ__Quantity__c'];
+            }
+
+            /* Labor */
+            if('LABOR_PER_REBAR_BAR' == line.record['SBQQ__ProductCode__c']){
+              lineMatRebarLabor[parent.parentItem.key] = line;
+              line.record['SBQQ__NetPrice__c'] = line.record['SBQQ__UnitCost__c'];
+            }
+          }
+        }
+        
+      }
+    }); // End of Lines
+
+    /* Calculate and Store Results */
+    if(parent_Product){
+      parent_Product.forEach(function(parent_line, key) {
+
+        /* Pay Item Calc */
+        //parent_line.record['SBQQ__Quantity__c'] = Math.ceil(length[key] * width[key] * depth[key] / 27);
+
+        /* Children Calc */ 
+        /* Mat Rebar*/
+        if(lineMatRebar[key]){
+          /* Quant of Mat Rebar*/
+          var noMatReBar = Math.ceil(((Math.ceil(intMatRebarPierLength[key] / (intMatRebarInOC[key] / 12)) + 1) * 2) * (intMatRebarPierLength[key] - .5) / 20);
+
+          lineMatRebar[key].record['SBQQ__Description__c'] = descrMatRebarSize[key] + ' ' + intMatRebarInOC[key] + '" O.C.';
+          lineMatRebar[key].record['SBQQ__Quantity__c'] = noMatReBar * parent_line.record['SBQQ__Quantity__c'];
+
+          if(lineMatRebarLabor[key]){
+            lineMatRebar[key].record['SBQQ__NetPrice__c'] = lineMatRebarLabor[key].record['SBQQ__NetPrice__c'] + lineMatRebarBar[key].record['SBQQ__NetPrice__c'];
+            lineMatRebarLabor[key].record['SBQQ__NetPrice__c'] = 0;
+          }else{
+            lineMatRebar[key].record['SBQQ__NetPrice__c'] = lineMatRebarBar[key].record['SBQQ__NetPrice__c'];
+          }
+
+          lineMatRebarBar[key].record['SBQQ__NetPrice__c'] = 0;
         }
 
       });
